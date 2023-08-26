@@ -1,9 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"log"
+
+	"github.com/psxzz/backend-trainee-assignment/pkg/app"
+)
 
 func main() {
+	app, err := app.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	fmt.Println("Hello world")
-
+	app.Run()
 }
