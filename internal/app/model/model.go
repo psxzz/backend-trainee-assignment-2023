@@ -16,6 +16,6 @@ type UserExperiment struct {
 }
 
 type UserExperimentList struct {
-	ID       int64     `json:"user_id"`
+	UserID   int64     `json:"user_id"`
 	Segments []Segment `json:"segments"`
 }

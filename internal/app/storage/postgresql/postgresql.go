@@ -160,7 +160,7 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*model.UserEx
 	}
 
 	expList := model.UserExperimentList{
-		ID: userID,
+		UserID: userID,
 	}
 
 	for rows.Next() {
