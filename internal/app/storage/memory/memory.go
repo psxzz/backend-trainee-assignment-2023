@@ -30,12 +30,27 @@ func New() *Storage {
 			ID   int64
 			Name string
 		}),
-		userExperiments: map[int64][]struct {
+		userExperiments: make(map[int64][]struct {
 			ID        int64
 			UserID    int64
 			SegmentID int64
-		}{},
+		}),
 	}
+}
+
+func (s *Storage) Segments() map[string]struct {
+	ID   int64
+	Name string
+} {
+	return s.segments
+}
+
+func (s *Storage) Experiments() map[int64][]struct {
+	ID        int64
+	UserID    int64
+	SegmentID int64
+} {
+	return s.userExperiments
 }
 
 func (s *Storage) AddSegment(ctx context.Context, name string) (*storage.SegmentDTO, error) {
