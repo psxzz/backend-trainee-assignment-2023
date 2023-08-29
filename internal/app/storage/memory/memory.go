@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/psxzz/backend-trainee-assignment/internal/app/model"
 	"github.com/psxzz/backend-trainee-assignment/internal/app/storage"
 )
 
@@ -39,7 +38,7 @@ func New() *Storage {
 	}
 }
 
-func (s *Storage) AddSegment(ctx context.Context, name string) (*model.Segment, error) {
+func (s *Storage) AddSegment(ctx context.Context, name string) (*storage.SegmentDTO, error) {
 	if _, ok := s.segments[name]; ok {
 		return nil, fmt.Errorf("mock storage add: %w", storage.ErrSegmentExists)
 	}
@@ -52,7 +51,7 @@ func (s *Storage) AddSegment(ctx context.Context, name string) (*model.Segment, 
 		name,
 	}
 
-	res := &model.Segment{
+	res := &storage.SegmentDTO{
 		ID:   segmentsIdx,
 		Name: name,
 	}
@@ -61,12 +60,12 @@ func (s *Storage) AddSegment(ctx context.Context, name string) (*model.Segment, 
 	return res, nil
 }
 
-func (s *Storage) DeleteSegment(ctx context.Context, name string) (*model.Segment, error) {
+func (s *Storage) DeleteSegment(ctx context.Context, name string) (*storage.SegmentDTO, error) {
 	if _, ok := s.segments[name]; !ok {
 		return nil, fmt.Errorf("mock storage delete: %w", storage.ErrSegmentNotFound)
 	}
 
-	res := &model.Segment{
+	res := &storage.SegmentDTO{
 		ID:   s.segments[name].ID,
 		Name: s.segments[name].Name,
 	}
@@ -75,7 +74,7 @@ func (s *Storage) DeleteSegment(ctx context.Context, name string) (*model.Segmen
 	return res, nil
 }
 
-func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentName string) (*model.UserExperiment, error) {
+func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentName string) (*storage.UserExperimentDTO, error) {
 	segment, ok := s.segments[segmentName]
 	if !ok {
 		return nil, storage.ErrSegmentNotFound
@@ -97,24 +96,29 @@ func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentNam
 		SegmentID: segment.ID,
 	})
 
-	res := &model.UserExperiment{
-		ID:        userExperimentsIdx,
-		UserID:    userID,
-		SegmentID: segment.ID,
+	res := &storage.UserExperimentDTO{
+		ID:     userExperimentsIdx,
+		UserID: userID,
+		Segment: storage.SegmentDTO{
+			ID:   segment.ID,
+			Name: segmentName,
+		},
 	}
 	userExperimentsIdx++
 
 	return res, nil
 }
 
-func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segmentName string) (*model.UserExperiment, error) {
+func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segmentName string) (*storage.UserExperimentDTO, error) {
 	segment, ok := s.segments[segmentName]
 	if !ok {
 		return nil, storage.ErrSegmentNotFound
 	}
 	var (
-		idx int                   = -1
-		res *model.UserExperiment = &model.UserExperiment{}
+		idx int                        = -1
+		res *storage.UserExperimentDTO = &storage.UserExperimentDTO{
+			Segment: storage.SegmentDTO{},
+		}
 	)
 
 	if records, ok := s.userExperiments[userID]; ok {
@@ -123,7 +127,8 @@ func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segme
 				idx = i
 				res.ID = record.ID
 				res.UserID = userID
-				res.SegmentID = segment.ID
+				res.Segment.ID = segment.ID
+				res.Segment.Name = segmentName
 				break
 			}
 		}
@@ -138,8 +143,8 @@ func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segme
 	return res, nil
 }
 
-func (s *Storage) UserSegments(ctx context.Context, userID int64) (*model.UserExperimentList, error) {
-	res := &model.UserExperimentList{
+func (s *Storage) UserSegments(ctx context.Context, userID int64) (*storage.UserExperimentListDTO, error) {
+	res := &storage.UserExperimentListDTO{
 		UserID: userID,
 	}
 
@@ -152,7 +157,7 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*model.UserEx
 
 		for _, key := range segmentKeys {
 			if s.segments[key].ID == record.SegmentID {
-				res.Segments = append(res.Segments, model.Segment{
+				res.Segments = append(res.Segments, storage.SegmentDTO{
 					ID:   s.segments[key].ID,
 					Name: s.segments[key].Name,
 				})

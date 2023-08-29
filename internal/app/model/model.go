@@ -10,9 +10,9 @@ type Segment struct {
 }
 
 type UserExperiment struct {
-	ID        int64 `json:"id"`
-	UserID    int64 `json:"user_id"`
-	SegmentID int64 `json:"segment_id"`
+	ID      int64   `json:"id"`
+	UserID  int64   `json:"user_id"`
+	Segment Segment `json:"segment"`
 }
 
 type UserExperimentList struct {

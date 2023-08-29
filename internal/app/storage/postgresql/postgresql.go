@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/lib/pq"
-	"github.com/psxzz/backend-trainee-assignment/internal/app/model"
 	"github.com/psxzz/backend-trainee-assignment/internal/app/storage"
 )
 
@@ -18,7 +17,7 @@ func New(db *sql.DB) *Storage {
 	return &Storage{db: db}
 }
 
-func (s *Storage) AddSegment(ctx context.Context, name string) (*model.Segment, error) {
+func (s *Storage) AddSegment(ctx context.Context, name string) (*storage.SegmentDTO, error) {
 	op := "storage.postgresql.AddSegment"
 
 	conn, err := s.db.Conn(ctx)
@@ -31,13 +30,13 @@ func (s *Storage) AddSegment(ctx context.Context, name string) (*model.Segment, 
 		"INSERT INTO Segments(segment_name) VALUES ($1) RETURNING *;", name)
 
 	if err := row.Err(); err != nil {
-		if err, ok := err.(*pq.Error); ok && err.Code == "23505" {
+		if err, ok := err.(*pq.Error); ok && err.Code == "23505" { //nolint:errorlint
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrSegmentExists)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var segment model.Segment
+	var segment storage.SegmentDTO
 	if err := row.Scan(&segment.ID, &segment.Name); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -45,7 +44,7 @@ func (s *Storage) AddSegment(ctx context.Context, name string) (*model.Segment, 
 	return &segment, nil
 }
 
-func (s *Storage) DeleteSegment(ctx context.Context, name string) (*model.Segment, error) {
+func (s *Storage) DeleteSegment(ctx context.Context, name string) (*storage.SegmentDTO, error) {
 	op := "storage.postgresql.DeleteSegment"
 
 	conn, err := s.db.Conn(ctx)
@@ -66,7 +65,7 @@ func (s *Storage) DeleteSegment(ctx context.Context, name string) (*model.Segmen
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	var deleted model.Segment
+	var deleted storage.SegmentDTO
 	if err := row.Scan(&deleted.ID, &deleted.Name); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -74,7 +73,7 @@ func (s *Storage) DeleteSegment(ctx context.Context, name string) (*model.Segmen
 	return &deleted, nil
 }
 
-func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentName string) (*model.UserExperiment, error) {
+func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentName string) (*storage.UserExperimentDTO, error) {
 	op := "storage.postgresql.AddUserToSegment"
 
 	conn, err := s.db.Conn(ctx)
@@ -93,7 +92,7 @@ func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentNam
 		userID, segmentID)
 
 	if err := row.Err(); err != nil {
-		if err := err.(*pq.Error); err != nil && err.Code == "23505" {
+		if err := err.(*pq.Error); err != nil && err.Code == "23505" { //nolint:errorlint
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrAlreadyInExperiment)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -104,14 +103,17 @@ func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentNam
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &model.UserExperiment{
-		ID:        id,
-		UserID:    userID,
-		SegmentID: segmentID,
+	return &storage.UserExperimentDTO{
+		ID:     id,
+		UserID: userID,
+		Segment: storage.SegmentDTO{
+			ID:   segmentID,
+			Name: segmentName,
+		},
 	}, nil
 }
 
-func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segmentName string) (*model.UserExperiment, error) {
+func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segmentName string) (*storage.UserExperimentDTO, error) {
 	op := "storage.postgresql.DeleteUserFromSegment"
 
 	conn, err := s.db.Conn(ctx)
@@ -133,18 +135,23 @@ func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segme
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	deleted := &model.UserExperiment{}
-	if err := row.Scan(deleted.ID, deleted.UserID, deleted.SegmentID); err != nil {
+	deleted := storage.UserExperimentDTO{
+		Segment: storage.SegmentDTO{
+			Name: segmentName,
+		},
+	}
+
+	if err := row.Scan(&deleted.ID, &deleted.UserID, &deleted.Segment.ID); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserExperimentNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return deleted, nil
+	return &deleted, nil
 }
 
-func (s *Storage) UserSegments(ctx context.Context, userID int64) (*model.UserExperimentList, error) {
+func (s *Storage) UserSegments(ctx context.Context, userID int64) (*storage.UserExperimentListDTO, error) {
 	op := "storage.postgresql.UserSegments"
 	conn, err := s.db.Conn(ctx)
 	if err != nil {
@@ -159,12 +166,12 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*model.UserEx
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	expList := model.UserExperimentList{
+	expList := &storage.UserExperimentListDTO{
 		UserID: userID,
 	}
 
 	for rows.Next() {
-		var seg model.Segment
+		var seg storage.SegmentDTO
 		if err := rows.Scan(&seg.ID, &seg.Name); err != nil {
 			return nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -175,7 +182,7 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*model.UserEx
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &expList, nil
+	return expList, nil
 }
 
 func (s *Storage) getSegmentID(ctx context.Context, name string) (int64, error) {

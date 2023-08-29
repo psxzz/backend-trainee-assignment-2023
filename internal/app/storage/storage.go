@@ -9,3 +9,19 @@ var (
 	ErrAlreadyInExperiment    = errors.New("current user is already in segment")
 	ErrUserExperimentNotFound = errors.New("user experiment not found")
 )
+
+type SegmentDTO struct {
+	ID   int64
+	Name string
+}
+
+type UserExperimentDTO struct {
+	ID      int64
+	UserID  int64
+	Segment SegmentDTO
+}
+
+type UserExperimentListDTO struct {
+	UserID   int64
+	Segments []SegmentDTO
+}
