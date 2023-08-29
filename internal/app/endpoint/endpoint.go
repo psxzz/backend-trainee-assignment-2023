@@ -35,7 +35,7 @@ func (e *Endpoint) HandleCreate(ctx echo.Context) error {
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, errorResponse{
+		return ctx.JSON(http.StatusNotFound, errorResponse{
 			Message: "field 'name' not found",
 		})
 	}
@@ -65,7 +65,7 @@ func (e *Endpoint) HandleDelete(ctx echo.Context) error {
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, errorResponse{
+		return ctx.JSON(http.StatusNotFound, errorResponse{
 			Message: "field 'name' not found",
 		})
 	}
@@ -73,7 +73,7 @@ func (e *Endpoint) HandleDelete(ctx echo.Context) error {
 	segment, err := e.svc.DeleteSegment(ctx.Request().Context(), req.Name)
 	if err != nil {
 		if errors.Is(err, storage.ErrSegmentNotFound) {
-			return ctx.JSON(http.StatusBadRequest, errorResponse{
+			return ctx.JSON(http.StatusNotFound, errorResponse{
 				Message: errors.Unwrap(err).Error(),
 			})
 		}
@@ -95,7 +95,7 @@ func (e *Endpoint) HandleExperiments(ctx echo.Context) error {
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, errorResponse{
+		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
 			Message: "Invalid request body",
 		})
 	}
@@ -124,16 +124,22 @@ func (e *Endpoint) HandleExperiments(ctx echo.Context) error {
 func (e *Endpoint) HandleUserExperimentList(ctx echo.Context) error {
 	var req experimentListRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.String(http.StatusInternalServerError, "Internal error")
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{
+			Message: "Internal error",
+		})
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.String(http.StatusBadRequest, "Invalid request body")
+		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
+			Message: "Invalid request body",
+		})
 	}
 
 	list, err := e.svc.ListUserSegments(ctx.Request().Context(), req.UserID)
 	if err != nil {
-		return ctx.String(http.StatusInternalServerError, err.Error())
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{
+			Message: "Internal error",
+		})
 	}
 
 	return ctx.JSON(http.StatusOK, list)
