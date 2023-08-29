@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,11 +15,11 @@ import (
 	"github.com/psxzz/backend-trainee-assignment/internal/app/endpoint"
 	"github.com/psxzz/backend-trainee-assignment/internal/app/service"
 	"github.com/psxzz/backend-trainee-assignment/internal/app/storage/postgresql"
+	"github.com/psxzz/backend-trainee-assignment/internal/app/validator"
 	"github.com/psxzz/backend-trainee-assignment/internal/config"
 )
 
 type App struct {
-	db   *sql.DB
 	cfg  *config.Config
 	svc  *service.Service
 	endp *endpoint.Endpoint
@@ -42,7 +41,7 @@ func New() (*App, error) {
 	}
 
 	storage := postgresql.New(db)
-	app.svc, err = service.New(storage)
+	app.svc = service.New(storage)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create a service: %w", err)
 	}
@@ -50,36 +49,34 @@ func New() (*App, error) {
 	app.endp = endpoint.New(app.svc)
 
 	app.echo = echo.New()
+	app.echo.Validator = validator.New()
 
-	// TODO: Declare endpoint handlers
-	app.echo.GET("/", handler)
+	// TODO: Declare endpoint handlers here
+	app.echo.POST("/create", app.endp.HandleCreate)
+	app.echo.POST("/delete", app.endp.HandleDelete)
+	app.echo.POST("/experiments", app.endp.HandleExperiments)
+	app.echo.GET("/list", app.endp.HandleUserExperimentList)
 
 	return app, nil
 }
 
 func (a App) Run() {
 	go func() {
-		err := a.echo.Start(":8080")
-		if err != nil {
-			log.Fatal(err)
+		if err := a.echo.Start(":8080"); err != nil && err != http.ErrServerClosed {
+			a.echo.Logger.Fatal(err)
 		}
 	}()
-	defer a.db.Close()
 
 	// graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 	<-quit
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) //nolint:gomnd
 	defer cancel()
 
 	err := a.echo.Shutdown(ctx)
 	if err != nil {
-		log.Fatal(err)
+		a.echo.Logger.Fatal(err)
 	}
-}
-
-func handler(ctx echo.Context) error {
-	return ctx.String(http.StatusOK, "Hello world!")
 }
