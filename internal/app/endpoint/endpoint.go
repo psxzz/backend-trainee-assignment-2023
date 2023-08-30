@@ -35,8 +35,8 @@ func (e *Endpoint) HandleCreate(ctx echo.Context) error {
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusNotFound, errorResponse{
-			Message: "field 'name' not found",
+		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
+			Message: "Validation error: field 'name' not found",
 		})
 	}
 
@@ -65,8 +65,8 @@ func (e *Endpoint) HandleDelete(ctx echo.Context) error {
 	}
 
 	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusNotFound, errorResponse{
-			Message: "field 'name' not found",
+		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
+			Message: "Validation error: field 'name' not found",
 		})
 	}
 
@@ -96,7 +96,7 @@ func (e *Endpoint) HandleExperiments(ctx echo.Context) error {
 
 	if err := ctx.Validate(req); err != nil {
 		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
-			Message: "Invalid request body",
+			Message: "Validation error: invalid request body",
 		})
 	}
 
@@ -131,7 +131,7 @@ func (e *Endpoint) HandleUserExperimentList(ctx echo.Context) error {
 
 	if err := ctx.Validate(req); err != nil {
 		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
-			Message: "Invalid request body",
+			Message: "Validation error: invalid request body",
 		})
 	}
 
