@@ -27,21 +27,27 @@ func New(storage Storage) *Service {
 }
 
 func (svc *Service) CreateSegment(ctx context.Context, name string) (*model.Segment, error) {
-	segment, err := svc.storage.AddSegment(ctx, name)
+	segmentDTO, err := svc.storage.AddSegment(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
-	return (*model.Segment)(segment), nil
+	return &model.Segment{
+		ID:   segmentDTO.ID,
+		Name: segmentDTO.Name,
+	}, nil
 }
 
 func (svc *Service) DeleteSegment(ctx context.Context, name string) (*model.Segment, error) {
-	segment, err := svc.storage.DeleteSegment(ctx, name)
+	segmentDTO, err := svc.storage.DeleteSegment(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 
-	return (*model.Segment)(segment), nil
+	return &model.Segment{
+		ID:   segmentDTO.ID,
+		Name: segmentDTO.Name,
+	}, nil
 }
 
 func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segmentNames []string) ([]*model.UserExperiment, error) {
@@ -55,9 +61,11 @@ func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segmen
 				errors.Is(err, storage.ErrAlreadyInExperiment)) {
 			return nil, err
 		}
+
 		if expDTO == nil {
 			continue
 		}
+
 		exp := &model.UserExperiment{
 			ID:     expDTO.ID,
 			UserID: expDTO.UserID,
