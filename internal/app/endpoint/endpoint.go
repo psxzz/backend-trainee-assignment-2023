@@ -16,6 +16,7 @@ type Service interface {
 	AddUserExperiments(context.Context, int64, []string) ([]*model.UserExperiment, error)
 	RemoveUserExperiments(context.Context, int64, []string) ([]*model.UserExperiment, error)
 	ListUserSegments(context.Context, int64) (*model.UserExperimentList, error)
+	CreateLog(context.Context, int64, string) (*model.LogInfo, error)
 }
 
 type Endpoint struct {
@@ -145,6 +146,47 @@ func (e *Endpoint) HandleUserExperimentList(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, list)
 }
 
+func (e *Endpoint) HandleCreateLog(ctx echo.Context) error {
+	var req userLogRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{
+			Message: "Internal error",
+		})
+	}
+
+	if err := ctx.Validate(req); err != nil {
+		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
+			Message: "Validation error: invalid request body",
+		})
+	}
+
+	info, err := e.svc.CreateLog(ctx.Request().Context(), req.UserID, req.From)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{
+			Message: "Internal error",
+		})
+	}
+
+	return ctx.JSON(http.StatusOK, info)
+}
+
+func (e *Endpoint) HandleDownloadLog(ctx echo.Context) error {
+	var req downloadRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, errorResponse{
+			Message: "Internal error",
+		})
+	}
+
+	if err := ctx.Validate(req); err != nil {
+		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
+			Message: "Validation error: invalid request body",
+		})
+	}
+
+	return ctx.File(req.URL)
+}
+
 type errorResponse struct {
 	Message string `json:"message"`
 }
@@ -167,4 +209,13 @@ type userExperimentResponse struct {
 
 type experimentListRequest struct {
 	UserID int64 `json:"user_id" validate:"required"`
+}
+
+type userLogRequest struct {
+	UserID int64  `json:"user_id" validate:"required"`
+	From   string `json:"from" validate:"required"`
+}
+
+type downloadRequest struct {
+	URL string `json:"url"`
 }

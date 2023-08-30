@@ -41,7 +41,7 @@ func New() (*App, error) {
 	}
 
 	storage := postgresql.New(db)
-	app.svc = service.New(storage)
+	app.svc = service.New(storage, app.cfg.LogsPath)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create a service: %w", err)
 	}
@@ -53,9 +53,11 @@ func New() (*App, error) {
 
 	// TODO: Declare endpoint handlers here
 	app.echo.POST("/create", app.endp.HandleCreate)
-	app.echo.POST("/delete", app.endp.HandleDelete)
+	app.echo.DELETE("/delete", app.endp.HandleDelete)
 	app.echo.POST("/experiments", app.endp.HandleExperiments)
 	app.echo.GET("/list", app.endp.HandleUserExperimentList)
+	app.echo.GET("/log/create", app.endp.HandleCreateLog)
+	app.echo.GET("/log/download", app.endp.HandleDownloadLog)
 
 	return app, nil
 }
