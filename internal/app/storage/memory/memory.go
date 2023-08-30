@@ -3,6 +3,7 @@ package memory
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/psxzz/backend-trainee-assignment/internal/app/storage"
 )
@@ -182,4 +183,8 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*storage.User
 	}
 
 	return res, nil
+}
+
+func (s *Storage) UserExperimentLogs(ctx context.Context, userID int64, start time.Time) ([]*storage.UserExperimentLogRecordDTO, error) {
+	return nil, nil
 }

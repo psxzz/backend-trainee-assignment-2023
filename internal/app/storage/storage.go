@@ -1,6 +1,9 @@
 package storage
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
 	// TODO: declare errors
@@ -24,4 +27,11 @@ type UserExperimentDTO struct {
 type UserExperimentListDTO struct {
 	UserID   int64
 	Segments []SegmentDTO
+}
+
+type UserExperimentLogRecordDTO struct {
+	UserID      int64
+	SegmentName string
+	Operation   string
+	AddedAt     time.Time
 }
