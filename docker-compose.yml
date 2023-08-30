@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=experimental_segments
+    ports:
+      - 5432:5432
+    volumes:
+      - db:/var/lib/postgresql/data/
+  app:
+    build:
+      context: .
+    restart: on-failure
+    environment:
+      - AVITO_DATABASE_DSN=postgres://postgres:postgres@db:5432/experimental_segments?sslmode=disable
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+volumes:
+  db:

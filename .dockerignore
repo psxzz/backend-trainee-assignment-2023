@@ -1,0 +1,6 @@
+api/
+migrations/
+.golangci.yaml
+Makefile
+README.md
+ASSIGNMENT.md

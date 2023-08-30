@@ -1,0 +1,218 @@
+openapi: 3.0.3
+info:
+  title: Сервис динамического сегментирования пользователей - OpenAPI 3.0
+  description: |-
+    Это OpenAPI 3.0 спецификация к сервису динамического сегментирования пользователей.
+    - [Репозиторий сервиса](https://github.com/psxzz/backend-trainee-assignment-2023)
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /create:
+    post:
+      summary: Создание нового сегмента
+      requestBody:
+        description: Метод создания сегмента. Принимает slug (название) сегмента.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentRequest'
+        required: true
+      responses:
+        '200':
+          description: Успешное выполнение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentResponce'          
+        '400':
+          description: Найден сегмент с идентичным названием
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "segment with current name already exists"
+        '405':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Invalid request body"
+  /delete:
+    post:
+      summary: Удаление существующего сегмента
+      requestBody:
+        description: Метод удаления сегмента. Принимает slug (название) сегмента.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SegmentRequest'
+        required: true
+      responses:
+        '200':
+          description: Успешное выполнение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SegmentResponce'          
+        '404':
+          description: Не найден сегмент с указанным названием
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "segment with current name not found"
+        '405':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "field 'name' not found"
+  /experiments:
+    post:
+      summary: Добавление/удаление пользователя в сегмент
+      requestBody:
+        description: Метод добавления пользователя в сегмент. Принимает список slug (названий) сегментов которые нужно добавить пользователю, список slug (названий) сегментов которые нужно удалить у пользователя, id пользователя.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperimentsRequest'
+        required: true
+      responses:
+        '200':
+          description: Успешное выполнение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExperimentsResponce'          
+        '405':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Invalid request body"
+  /list:
+    post:
+      summary: Получения списка сегментов пользователя
+      requestBody:
+        description: Метод получения активных сегментов пользователя. Принимает на вход id пользователя.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: integer
+                  format: int64
+                  example: 1001
+        required: true
+      responses:
+        '200':
+          description: Успешное выполнение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponce'          
+        '405':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Invalid request body"
+
+components:
+  schemas:
+    SegmentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "AVITO_VOICE_MESSAGES"  
+    SegmentResponce:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 0
+        name:
+          type: string
+          example: "AVITO_VOICE_MESSAGES"
+    ExperimentsRequest:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          example: 1001
+        to_add:
+          type: array
+          items: 
+            type: string
+          example: ["AVITO_VOICE_MESSAGES", "AVITO_DISCOUNT_50"]
+        to_delete:
+          type: array
+          items:
+            type: string
+          example: ["AVITO_DISCOUNT_30"]
+    UserExperiment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 0
+        user_id:
+          type: integer
+          format: int64
+          example: 1001
+        segment:
+          $ref: '#/components/schemas/SegmentResponce'
+    ExperimentsResponce:
+      type: object
+      properties:
+        user_id: 
+          type: integer
+          format: int64
+          example: 0
+        added:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserExperiment'
+        removed:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserExperiment'
+    ListResponce:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          example: 1001
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/SegmentResponce'
