@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/lib/pq"
 	"github.com/psxzz/backend-trainee-assignment/internal/app/storage"
@@ -103,6 +104,10 @@ func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentNam
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	if err := s.logExperiment(ctx, userID, segmentName, "add"); err != nil {
+		log.Println(err)
+	}
+
 	return &storage.UserExperimentDTO{
 		ID:     id,
 		UserID: userID,
@@ -146,6 +151,10 @@ func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segme
 			return nil, fmt.Errorf("%s: %w", op, storage.ErrUserExperimentNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.logExperiment(ctx, userID, segmentName, "remove"); err != nil {
+		log.Println(err)
 	}
 
 	return &deleted, nil
@@ -208,4 +217,23 @@ func (s *Storage) getSegmentID(ctx context.Context, name string) (int64, error) 
 	}
 
 	return id, nil
+}
+
+func (s *Storage) logExperiment(ctx context.Context, userID int64, segmentName, opType string) error {
+	op := "storage.postgresql.logExperiment"
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer conn.Close()
+
+	_, err = conn.ExecContext(ctx,
+		"INSERT INTO log_user_experiments(user_id, segment_name, op_type)"+
+			"VALUES ($1, $2, $3);", userID, segmentName, opType)
+
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }
