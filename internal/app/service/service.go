@@ -2,10 +2,21 @@ package service
 
 import (
 	"context"
+	"encoding/csv"
 	"errors"
+	"fmt"
+	"os"
+	"path"
+	"strings"
+	"time"
 
 	"github.com/psxzz/backend-trainee-assignment/internal/app/model"
 	"github.com/psxzz/backend-trainee-assignment/internal/app/storage"
+)
+
+const (
+	logDateFormat       = "2006-01"
+	logFilenameTemplate = "log_user_%d_%v.csv"
 )
 
 type Storage interface {
@@ -14,15 +25,20 @@ type Storage interface {
 	AddUserToSegment(context.Context, int64, string) (*storage.UserExperimentDTO, error)
 	DeleteUserFromSegment(context.Context, int64, string) (*storage.UserExperimentDTO, error)
 	UserSegments(context.Context, int64) (*storage.UserExperimentListDTO, error)
+	UserExperimentLogs(context.Context, int64, time.Time) ([]*storage.UserExperimentLogRecordDTO, error)
 }
 
 type Service struct {
-	storage Storage
+	storage  Storage
+	logsPath string
 }
 
-func New(storage Storage) *Service {
+func New(storage Storage, logsPath string) *Service {
+	logsPath = strings.TrimRight(logsPath, "/")
+
 	return &Service{
-		storage: storage,
+		storage:  storage,
+		logsPath: logsPath,
 	}
 }
 
@@ -127,4 +143,57 @@ func (svc *Service) ListUserSegments(ctx context.Context, userID int64) (*model.
 	}
 
 	return list, nil
+}
+
+func (s *Service) CreateLog(ctx context.Context, userID int64, start string) (*model.LogInfo, error) {
+	from, err := time.Parse(logDateFormat, start)
+	if err != nil {
+		return nil, err
+	}
+
+	records, err := s.storage.UserExperimentLogs(ctx, userID, from)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.Mkdir(s.logsPath, 0777); err != nil && !errors.Is(err, os.ErrExist) {
+		return nil, err
+	}
+
+	logName := fmt.Sprintf(logFilenameTemplate, userID, start)
+	path := path.Join(s.logsPath, logName)
+
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	w := csv.NewWriter(f)
+	w.Comma = ';'
+	defer w.Flush()
+
+	if err := w.Write(
+		[]string{"user_id", "segment_name", "operation", "added_at"},
+	); err != nil {
+		return nil, err
+	}
+
+	for _, record := range records {
+		row := []string{
+			fmt.Sprint(record.UserID),
+			record.SegmentName,
+			record.Operation,
+			record.AddedAt.Format(time.DateTime),
+		}
+		if err := w.Write(row); err != nil {
+			return nil, err
+		}
+	}
+
+	return &model.LogInfo{
+		UserID: userID,
+		From:   start,
+		Path:   path,
+	}, nil
 }
