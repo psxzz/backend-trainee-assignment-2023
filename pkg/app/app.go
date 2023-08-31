@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -63,7 +64,7 @@ func New() (*App, error) {
 
 func (a App) Run() {
 	go func() {
-		if err := a.echo.Start(":8080"); err != nil && err != http.ErrServerClosed {
+		if err := a.echo.Start(":8080"); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.echo.Logger.Fatal(err)
 		}
 	}()

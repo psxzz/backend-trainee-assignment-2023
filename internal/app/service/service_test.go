@@ -30,8 +30,9 @@ func TestSegments(t *testing.T) {
 			svc = service.New(db, "")
 		)
 
-		svc.CreateSegment(context.Background(), "Hello")
 		_, err := svc.CreateSegment(context.Background(), "Hello")
+		assert.NoError(t, err)
+		_, err = svc.CreateSegment(context.Background(), "Hello")
 		assert.ErrorIs(t, err, storage.ErrSegmentExists)
 	})
 
@@ -103,7 +104,8 @@ func TestUserExperiments(t *testing.T) {
 			svc = service.New(db, "")
 		)
 
-		svc.CreateSegment(context.Background(), "Hello")
+		_, err := svc.CreateSegment(context.Background(), "Hello")
+		assert.NoError(t, err)
 		respCreate, err := svc.AddUserExperiments(context.Background(), 1010, []string{"Hello"})
 		assert.NoError(t, err)
 		respDelete, err := svc.RemoveUserExperiments(context.Background(), 1010, []string{"Hello"})

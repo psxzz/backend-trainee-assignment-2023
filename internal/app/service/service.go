@@ -67,7 +67,7 @@ func (svc *Service) DeleteSegment(ctx context.Context, name string) (*model.Segm
 }
 
 func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segmentNames []string) ([]*model.UserExperiment, error) {
-	var experiments []*model.UserExperiment
+	experiments := make([]*model.UserExperiment, 0, len(segmentNames))
 
 	for _, segmentName := range segmentNames {
 		expDTO, err := svc.storage.AddUserToSegment(ctx, userID, segmentName)
@@ -98,7 +98,8 @@ func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segmen
 }
 
 func (svc *Service) RemoveUserExperiments(ctx context.Context, userID int64, segmentNames []string) ([]*model.UserExperiment, error) {
-	var experiments []*model.UserExperiment
+	experiments := make([]*model.UserExperiment, 0, len(segmentNames))
+
 	for _, segmentName := range segmentNames {
 		expDTO, err := svc.storage.DeleteUserFromSegment(ctx, userID, segmentName)
 
@@ -156,7 +157,7 @@ func (s *Service) CreateLog(ctx context.Context, userID int64, start string) (*m
 		return nil, err
 	}
 
-	if err := os.Mkdir(s.logsPath, 0777); err != nil && !errors.Is(err, os.ErrExist) {
+	if err := os.Mkdir(s.logsPath, 0777); err != nil && !errors.Is(err, os.ErrExist) { //nolint:gomnd
 		return nil, err
 	}
 

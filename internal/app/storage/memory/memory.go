@@ -164,7 +164,7 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*storage.User
 		UserID: userID,
 	}
 
-	var segmentKeys []string
+	segmentKeys := make([]string, 0, len(s.segments))
 	for k := range s.segments {
 		segmentKeys = append(segmentKeys, k)
 	}
