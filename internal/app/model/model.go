@@ -24,5 +24,5 @@ type LogInfo struct {
 
 type UserExperimentItem struct {
 	Name      string `json:"name" validate:"required"`
-	ExpiresAt string `json:"expired_at,omitempty"`
+	ExpiresAt string `json:"expires_at,omitempty"`
 }
