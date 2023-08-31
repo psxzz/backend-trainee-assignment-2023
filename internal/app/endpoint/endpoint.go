@@ -13,7 +13,7 @@ import (
 type Service interface {
 	CreateSegment(context.Context, string) (*model.Segment, error)
 	DeleteSegment(context.Context, string) (*model.Segment, error)
-	AddUserExperiments(context.Context, int64, []string) ([]*model.UserExperiment, error)
+	AddUserExperiments(context.Context, int64, []*model.UserExperimentItem) ([]*model.UserExperiment, error)
 	RemoveUserExperiments(context.Context, int64, []string) ([]*model.UserExperiment, error)
 	ListUserSegments(context.Context, int64) (*model.UserExperimentList, error)
 	CreateLog(context.Context, int64, string) (*model.LogInfo, error)
@@ -179,9 +179,9 @@ type segmentRequest struct {
 }
 
 type userExperimentRequest struct {
-	UserID   int64    `json:"user_id" validate:"required"`
-	ToAdd    []string `json:"to_add" validate:"required"`
-	ToRemove []string `json:"to_remove" validate:"required"`
+	UserID   int64                       `json:"user_id" validate:"required"`
+	ToAdd    []*model.UserExperimentItem `json:"to_add" validate:"required"`
+	ToRemove []string                    `json:"to_remove" validate:"required"`
 }
 
 type userExperimentResponse struct {
