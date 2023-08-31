@@ -53,10 +53,10 @@ func New() (*App, error) {
 
 	// TODO: Declare endpoint handlers here
 	app.echo.POST("/create", app.endp.HandleCreate)
-	app.echo.DELETE("/delete", app.endp.HandleDelete)
+	app.echo.POST("/delete", app.endp.HandleDelete)
 	app.echo.POST("/experiments", app.endp.HandleExperiments)
-	app.echo.GET("/list", app.endp.HandleUserExperimentList)
-	app.echo.GET("/log/create", app.endp.HandleCreateLog)
+	app.echo.POST("/list", app.endp.HandleUserExperimentList)
+	app.echo.POST("/log/create", app.endp.HandleCreateLog)
 
 	return app, nil
 }
