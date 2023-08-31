@@ -119,6 +119,50 @@ func (s *Storage) AddUserToSegment(ctx context.Context, userID int64, segmentNam
 	}, nil
 }
 
+func (s *Storage) AddUserToSegmentWithExpiracy(ctx context.Context, userID int64, segmentName string, expiresAt time.Time) (*storage.UserExperimentDTO, error) {
+	op := "storage.postgresql.AddUserToSegmentWithExpicary"
+
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer conn.Close()
+
+	segmentID, err := s.getSegmentID(ctx, segmentName)
+	if err != nil {
+		return nil, fmt.Errorf("%s.getSegmentID: %w", op, err)
+	}
+
+	row := conn.QueryRowContext(ctx,
+		"INSERT INTO user_experiments(user_id, segment_id, expires_at) VALUES ($1, $2, $3) RETURNING id;",
+		userID, segmentID, expiresAt)
+
+	if err := row.Err(); err != nil {
+		if err := err.(*pq.Error); err != nil && err.Code == "23505" { //nolint:errorlint
+			return nil, fmt.Errorf("%s: %w", op, storage.ErrAlreadyInExperiment)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var id int64
+	if err := row.Scan(&id); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	if err := s.logExperiment(ctx, userID, segmentName, "add"); err != nil {
+		log.Println(err)
+	}
+
+	return &storage.UserExperimentDTO{
+		ID:     id,
+		UserID: userID,
+		Segment: storage.SegmentDTO{
+			ID:   segmentID,
+			Name: segmentName,
+		},
+	}, nil
+}
+
 func (s *Storage) DeleteUserFromSegment(ctx context.Context, userID int64, segmentName string) (*storage.UserExperimentDTO, error) {
 	op := "storage.postgresql.DeleteUserFromSegment"
 
@@ -256,6 +300,28 @@ func (s *Storage) getSegmentID(ctx context.Context, name string) (int64, error) 
 	return id, nil
 }
 
+func (s *Storage) getSegmentName(ctx context.Context, id int64) (string, error) {
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	var name string
+	row := conn.QueryRowContext(ctx,
+		"SELECT segment_name FROM segments WHERE id = $1", id)
+
+	if err := row.Err(); err != nil {
+		return "", err
+	}
+
+	if err := row.Scan(&name); err != nil {
+		return "", err
+	}
+
+	return name, nil
+}
+
 func (s *Storage) logExperiment(ctx context.Context, userID int64, segmentName, opType string) error {
 	op := "storage.postgresql.logExperiment"
 	conn, err := s.db.Conn(ctx)
@@ -275,7 +341,7 @@ func (s *Storage) logExperiment(ctx context.Context, userID int64, segmentName, 
 	return nil
 }
 
-func (s *Storage) deleteOldExperiments(ctx context.Context, now time.Time) error {
+func (s *Storage) DeleteOldExperiments(ctx context.Context) error {
 	op := "storage.postgresql.deleteOldExperiments"
 
 	conn, err := s.db.Conn(ctx)
@@ -284,9 +350,33 @@ func (s *Storage) deleteOldExperiments(ctx context.Context, now time.Time) error
 	}
 	defer conn.Close()
 
-	_, err = conn.ExecContext(ctx,
-		"DELETE FROM user_experiments WHERE expires_at IS NOT NULL AND expires_at < $1;", now)
+	rows, err := conn.QueryContext(ctx,
+		"DELETE FROM user_experiments WHERE expires_at IS NOT NULL AND expires_at < NOW() "+
+			"RETURNING user_id, segment_id;")
 	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	for rows.Next() {
+		var (
+			userID    int64
+			segmentID int64
+		)
+		if err := rows.Scan(&userID, &segmentID); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		segmentName, err := s.getSegmentName(ctx, segmentID)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		if err := s.logExperiment(ctx, userID, segmentName, "remove"); err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
