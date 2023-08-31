@@ -13,10 +13,10 @@ services:
     volumes:
       - db:/var/lib/postgresql/data/
   app:
-    build:
-      context: .
+    build: .
     restart: on-failure
     environment:
+      - AVITO_LOGS_PATH=/var/avito_logs/
       - AVITO_DATABASE_DSN=postgres://postgres:postgres@db:5432/experimental_segments?sslmode=disable
     ports:
       - 8080:8080
