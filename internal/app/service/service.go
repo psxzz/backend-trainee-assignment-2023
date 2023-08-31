@@ -185,7 +185,7 @@ func (s *Service) CreateLog(ctx context.Context, userID int64, start string) (*m
 			fmt.Sprint(record.UserID),
 			record.SegmentName,
 			record.Operation,
-			record.AddedAt.Format(time.DateTime),
+			record.AddedAt.Local().Format(time.DateTime),
 		}
 		if err := w.Write(row); err != nil {
 			return nil, err

@@ -206,7 +206,7 @@ func (s *Storage) UserExperimentLogs(ctx context.Context, userID int64, start ti
 	rows, err := conn.QueryContext(ctx,
 		"SELECT user_id, segment_name, op_type, added_at FROM "+
 			"log_user_experiments WHERE user_id = $1 AND "+
-			"added_at BETWEEN $2 AND $2 + INTERVAL '1 month'", userID, start)
+			"added_at BETWEEN $2 AND $2 + INTERVAL '1 month'", userID, start.UTC())
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -268,6 +268,24 @@ func (s *Storage) logExperiment(ctx context.Context, userID int64, segmentName, 
 		"INSERT INTO log_user_experiments(user_id, segment_name, op_type)"+
 			"VALUES ($1, $2, $3);", userID, segmentName, opType)
 
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
+}
+
+func (s *Storage) deleteOldExperiments(ctx context.Context, now time.Time) error {
+	op := "storage.postgresql.deleteOldExperiments"
+
+	conn, err := s.db.Conn(ctx)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	defer conn.Close()
+
+	_, err = conn.ExecContext(ctx,
+		"DELETE FROM user_experiments WHERE expires_at IS NOT NULL AND expires_at < $1;", now)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
