@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strings"
@@ -23,9 +24,11 @@ type Storage interface {
 	AddSegment(context.Context, string) (*storage.SegmentDTO, error)
 	DeleteSegment(context.Context, string) (*storage.SegmentDTO, error)
 	AddUserToSegment(context.Context, int64, string) (*storage.UserExperimentDTO, error)
+	AddUserToSegmentWithExpiracy(context.Context, int64, string, time.Time) (*storage.UserExperimentDTO, error)
 	DeleteUserFromSegment(context.Context, int64, string) (*storage.UserExperimentDTO, error)
 	UserSegments(context.Context, int64) (*storage.UserExperimentListDTO, error)
 	UserExperimentLogs(context.Context, int64, time.Time) ([]*storage.UserExperimentLogRecordDTO, error)
+	DeleteOldExperiments(context.Context) error
 }
 
 type Service struct {
@@ -66,11 +69,26 @@ func (svc *Service) DeleteSegment(ctx context.Context, name string) (*model.Segm
 	}, nil
 }
 
-func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segmentNames []string) ([]*model.UserExperiment, error) {
-	experiments := make([]*model.UserExperiment, 0, len(segmentNames))
+func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segments []*model.UserExperimentItem) ([]*model.UserExperiment, error) {
+	experiments := make([]*model.UserExperiment, 0, len(segments))
 
-	for _, segmentName := range segmentNames {
-		expDTO, err := svc.storage.AddUserToSegment(ctx, userID, segmentName)
+	for _, segment := range segments {
+		var (
+			expDTO    *storage.UserExperimentDTO
+			expiresAt time.Time
+			err       error
+		)
+
+		if segment.ExpiresAt == "" {
+			expDTO, err = svc.storage.AddUserToSegment(ctx, userID, segment.Name)
+		} else {
+			expiresAt, err = time.Parse(time.DateTime, segment.ExpiresAt)
+			if err != nil {
+				return nil, err
+			}
+			expiresAt = expiresAt.Add(time.Duration(-3) * time.Hour)
+			expDTO, err = svc.storage.AddUserToSegmentWithExpiracy(ctx, userID, segment.Name, expiresAt)
+		}
 
 		if err != nil &&
 			!(errors.Is(err, storage.ErrSegmentNotFound) ||
@@ -92,6 +110,10 @@ func (svc *Service) AddUserExperiments(ctx context.Context, userID int64, segmen
 		}
 
 		experiments = append(experiments, exp)
+	}
+
+	if err := svc.storage.DeleteOldExperiments(ctx); err != nil {
+		log.Println(err)
 	}
 
 	return experiments, nil
@@ -123,6 +145,10 @@ func (svc *Service) RemoveUserExperiments(ctx context.Context, userID int64, seg
 		}
 
 		experiments = append(experiments, exp)
+	}
+
+	if err := svc.storage.DeleteOldExperiments(ctx); err != nil {
+		log.Println(err)
 	}
 
 	return experiments, nil
@@ -185,7 +211,7 @@ func (s *Service) CreateLog(ctx context.Context, userID int64, start string) (*m
 			fmt.Sprint(record.UserID),
 			record.SegmentName,
 			record.Operation,
-			record.AddedAt.Format(time.DateTime),
+			record.AddedAt.Local().Format(time.DateTime),
 		}
 		if err := w.Write(row); err != nil {
 			return nil, err

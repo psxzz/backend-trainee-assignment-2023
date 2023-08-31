@@ -71,7 +71,7 @@ func TestUserExperiments(t *testing.T) {
 		_, err := svc.CreateSegment(context.Background(), "Hello")
 		assert.NoError(t, err)
 
-		exp, err := svc.AddUserExperiments(context.Background(), 1010, []string{"Hello"})
+		exp, err := svc.AddUserExperiments(context.Background(), 1010, []*model.UserExperimentItem{{Name: "Hello"}})
 		assert.NoError(t, err)
 
 		assert.Contains(t, db.Experiments()[1010], struct {
@@ -90,10 +90,10 @@ func TestUserExperiments(t *testing.T) {
 		_, err := svc.CreateSegment(context.Background(), "Hello")
 		assert.NoError(t, err)
 
-		_, err = svc.AddUserExperiments(context.Background(), 1010, []string{"Hello"})
+		_, err = svc.AddUserExperiments(context.Background(), 1010, []*model.UserExperimentItem{{Name: "Hello"}})
 		assert.NoError(t, err)
 
-		resp, err := svc.AddUserExperiments(context.Background(), 1010, []string{"Hello"})
+		resp, err := svc.AddUserExperiments(context.Background(), 1010, []*model.UserExperimentItem{{Name: "Hello"}})
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(resp))
 	})
@@ -106,7 +106,7 @@ func TestUserExperiments(t *testing.T) {
 
 		_, err := svc.CreateSegment(context.Background(), "Hello")
 		assert.NoError(t, err)
-		respCreate, err := svc.AddUserExperiments(context.Background(), 1010, []string{"Hello"})
+		respCreate, err := svc.AddUserExperiments(context.Background(), 1010, []*model.UserExperimentItem{{Name: "Hello"}})
 		assert.NoError(t, err)
 		respDelete, err := svc.RemoveUserExperiments(context.Background(), 1010, []string{"Hello"})
 		assert.NoError(t, err)
@@ -142,7 +142,7 @@ func TestListExperiments(t *testing.T) {
 
 		seg2, err := svc.CreateSegment(context.Background(), "World")
 		assert.NoError(t, err)
-		_, err = svc.AddUserExperiments(context.Background(), 1010, []string{"Hello", "World"})
+		_, err = svc.AddUserExperiments(context.Background(), 1010, []*model.UserExperimentItem{{Name: "Hello"}, {Name: "World"}})
 		assert.NoError(t, err)
 
 		resp, err = svc.ListUserSegments(context.Background(), 1010)

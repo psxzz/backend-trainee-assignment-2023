@@ -188,3 +188,11 @@ func (s *Storage) UserSegments(ctx context.Context, userID int64) (*storage.User
 func (s *Storage) UserExperimentLogs(ctx context.Context, userID int64, start time.Time) ([]*storage.UserExperimentLogRecordDTO, error) {
 	return nil, nil
 }
+
+func (s *Storage) DeleteOldExperiments(ctx context.Context) error {
+	return nil
+}
+
+func (s *Storage) AddUserToSegmentWithExpiracy(ctx context.Context, userID int64, segmentName string, expiredAt time.Time) (*storage.UserExperimentDTO, error) {
+	return nil, nil
+}

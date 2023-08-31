@@ -21,3 +21,8 @@ type LogInfo struct {
 	From   string `json:"from"`
 	Path   string `json:"url"`
 }
+
+type UserExperimentItem struct {
+	Name      string `json:"name" validate:"required"`
+	ExpiresAt string `json:"expired_at,omitempty"`
+}
