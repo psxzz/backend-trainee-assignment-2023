@@ -15,7 +15,7 @@ func TestSegments(t *testing.T) {
 	t.Run("creates new segment", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		resp, err := svc.CreateSegment(context.Background(), "Hello")
@@ -27,18 +27,19 @@ func TestSegments(t *testing.T) {
 	t.Run("returns error if duplicate", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
-		svc.CreateSegment(context.Background(), "Hello")
 		_, err := svc.CreateSegment(context.Background(), "Hello")
+		assert.NoError(t, err)
+		_, err = svc.CreateSegment(context.Background(), "Hello")
 		assert.ErrorIs(t, err, storage.ErrSegmentExists)
 	})
 
 	t.Run("deletes existing segment", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		respCreate, err := svc.CreateSegment(context.Background(), "Hello")
@@ -52,7 +53,7 @@ func TestSegments(t *testing.T) {
 	t.Run("returns error if segment not exists", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		_, err := svc.DeleteSegment(context.Background(), "Hello")
@@ -64,7 +65,7 @@ func TestUserExperiments(t *testing.T) {
 	t.Run("creates new user experiment", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		_, err := svc.CreateSegment(context.Background(), "Hello")
@@ -83,7 +84,7 @@ func TestUserExperiments(t *testing.T) {
 	t.Run("skips insert if experiment exists", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		_, err := svc.CreateSegment(context.Background(), "Hello")
@@ -100,10 +101,11 @@ func TestUserExperiments(t *testing.T) {
 	t.Run("deletes existing user experiment", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
-		svc.CreateSegment(context.Background(), "Hello")
+		_, err := svc.CreateSegment(context.Background(), "Hello")
+		assert.NoError(t, err)
 		respCreate, err := svc.AddUserExperiments(context.Background(), 1010, []string{"Hello"})
 		assert.NoError(t, err)
 		respDelete, err := svc.RemoveUserExperiments(context.Background(), 1010, []string{"Hello"})
@@ -115,7 +117,7 @@ func TestUserExperiments(t *testing.T) {
 	t.Run("skip delete if user experiment not exists", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		resp, err := svc.RemoveUserExperiments(context.Background(), 1010, []string{"Hello"})
@@ -128,7 +130,7 @@ func TestListExperiments(t *testing.T) {
 	t.Run("lists all user experiments", func(t *testing.T) {
 		var (
 			db  = memory.New()
-			svc = service.New(db)
+			svc = service.New(db, "")
 		)
 
 		resp, err := svc.ListUserSegments(context.Background(), 1010)

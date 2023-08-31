@@ -1,9 +1,5 @@
 package model
 
-// type User struct {
-// 	ID int64
-// }
-
 type Segment struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
@@ -18,4 +14,10 @@ type UserExperiment struct {
 type UserExperimentList struct {
 	UserID   int64     `json:"user_id"`
 	Segments []Segment `json:"segments"`
+}
+
+type LogInfo struct {
+	UserID int64  `json:"user_id"`
+	From   string `json:"from"`
+	Path   string `json:"url"`
 }

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -41,7 +42,7 @@ func New() (*App, error) {
 	}
 
 	storage := postgresql.New(db)
-	app.svc = service.New(storage)
+	app.svc = service.New(storage, app.cfg.LogsPath)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create a service: %w", err)
 	}
@@ -55,14 +56,15 @@ func New() (*App, error) {
 	app.echo.POST("/create", app.endp.HandleCreate)
 	app.echo.POST("/delete", app.endp.HandleDelete)
 	app.echo.POST("/experiments", app.endp.HandleExperiments)
-	app.echo.GET("/list", app.endp.HandleUserExperimentList)
+	app.echo.POST("/list", app.endp.HandleUserExperimentList)
+	app.echo.POST("/log/create", app.endp.HandleCreateLog)
 
 	return app, nil
 }
 
 func (a App) Run() {
 	go func() {
-		if err := a.echo.Start(":8080"); err != nil && err != http.ErrServerClosed {
+		if err := a.echo.Start(":8080"); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.echo.Logger.Fatal(err)
 		}
 	}()
