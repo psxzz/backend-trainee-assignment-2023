@@ -57,7 +57,6 @@ func New() (*App, error) {
 	app.echo.POST("/experiments", app.endp.HandleExperiments)
 	app.echo.GET("/list", app.endp.HandleUserExperimentList)
 	app.echo.GET("/log/create", app.endp.HandleCreateLog)
-	app.echo.GET("/log/download", app.endp.HandleDownloadLog)
 
 	return app, nil
 }

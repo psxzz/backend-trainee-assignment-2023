@@ -170,23 +170,6 @@ func (e *Endpoint) HandleCreateLog(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, info)
 }
 
-func (e *Endpoint) HandleDownloadLog(ctx echo.Context) error {
-	var req downloadRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, errorResponse{
-			Message: "Internal error",
-		})
-	}
-
-	if err := ctx.Validate(req); err != nil {
-		return ctx.JSON(http.StatusMethodNotAllowed, errorResponse{
-			Message: "Validation error: invalid request body",
-		})
-	}
-
-	return ctx.File(req.URL)
-}
-
 type errorResponse struct {
 	Message string `json:"message"`
 }
@@ -214,8 +197,4 @@ type experimentListRequest struct {
 type userLogRequest struct {
 	UserID int64  `json:"user_id" validate:"required"`
 	From   string `json:"from" validate:"required"`
-}
-
-type downloadRequest struct {
-	URL string `json:"url"`
 }
